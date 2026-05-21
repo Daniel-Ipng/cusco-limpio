@@ -1,21 +1,10 @@
 import { useState } from 'react'
 
-const horariosPorZona: Record<string, { turno: string; hora: string; dias: string }[]> = {
-  'wanchaq': [
-    { turno: 'Mañana', hora: '06:00 - 08:00', dias: 'Lunes, Miércoles, Viernes' },
-    { turno: 'Tarde', hora: '14:00 - 16:00', dias: 'Martes, Jueves' },
-    { turno: 'Noche', hora: '20:00 - 22:00', dias: 'Sábado' },
-  ],
-  'santiago': [
-    { turno: 'Madrugada', hora: '04:00 - 06:00', dias: 'Lunes, Jueves' },
-    { turno: 'Mañana', hora: '07:00 - 09:00', dias: 'Martes, Viernes' },
-    { turno: 'Tarde', hora: '15:00 - 17:00', dias: 'Miércoles, Sábado' },
-  ],
-  'cusco': [
-    { turno: 'Mañana', hora: '06:00 - 08:00', dias: 'Lunes, Miércoles' },
-    { turno: 'Tarde', hora: '13:00 - 15:00', dias: 'Martes, Jueves' },
-    { turno: 'Noche', hora: '19:00 - 21:00', dias: 'Viernes, Sábado' },
-  ],
+interface Horario {
+  turno: string
+  hora_inicio: string
+  hora_fin: string
+  dias: string
 }
 
 const turnoColor: Record<string, string> = {
@@ -32,23 +21,37 @@ const turnoIcono: Record<string, string> = {
   'Noche': '🌃',
 }
 
+function formatHora(hora: string) {
+  return hora.slice(0, 5)
+}
+
 function HomeCiudadano() {
   const [direccion, setDireccion] = useState('')
-  const [horarios, setHorarios] = useState<{ turno: string; hora: string; dias: string }[] | null>(null)
+  const [horarios, setHorarios] = useState<Horario[] | null>(null)
   const [zonaEncontrada, setZonaEncontrada] = useState('')
   const [noEncontrado, setNoEncontrado] = useState(false)
+  const [cargando, setCargando] = useState(false)
 
-  function buscarHorarios() {
-    const texto = direccion.toLowerCase()
-    const zona = Object.keys(horariosPorZona).find(z => texto.includes(z))
-    if (zona) {
-      setHorarios(horariosPorZona[zona])
-      setZonaEncontrada(zona.charAt(0).toUpperCase() + zona.slice(1))
-      setNoEncontrado(false)
-    } else {
-      setHorarios(null)
+  async function buscarHorarios() {
+    if (!direccion.trim()) return
+    setCargando(true)
+    setNoEncontrado(false)
+    setHorarios(null)
+
+    try {
+      const response = await fetch(`http://localhost:3000/api/horarios/${encodeURIComponent(direccion)}`)
+      if (response.status === 404) {
+        setNoEncontrado(true)
+        setZonaEncontrada('')
+      } else {
+        const data = await response.json()
+        setHorarios(data)
+        setZonaEncontrada(direccion)
+      }
+    } catch (error) {
       setNoEncontrado(true)
-      setZonaEncontrada('')
+    } finally {
+      setCargando(false)
     }
   }
 
@@ -89,54 +92,53 @@ function HomeCiudadano() {
               value={direccion}
               onChange={e => setDireccion(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && buscarHorarios()}
-              placeholder="Ej: Wanchaq, Santiago, Cusco centro..."
+              placeholder="Ej: San Blas, San Pedro, Magisterio..."
               className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#1a7a5e]"
             />
             <button
               onClick={buscarHorarios}
-              className="bg-[#1a7a5e] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#155f49] transition-colors"
+              disabled={cargando}
+              className="bg-[#1a7a5e] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#155f49] transition-colors disabled:opacity-50"
             >
-              Buscar
+              {cargando ? '...' : 'Buscar'}
             </button>
           </div>
         </div>
 
-        {/* Resultado no encontrado */}
+        {/* No encontrado */}
         {noEncontrado && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center mb-6">
-            <p className="text-sm text-red-600 font-medium">No encontramos horarios para esa dirección</p>
-            <p className="text-xs text-red-400 mt-1">Intenta con: Wanchaq, Santiago o Cusco</p>
+            <p className="text-sm text-red-600 font-medium">No encontramos horarios para esa zona</p>
+            <p className="text-xs text-red-400 mt-1">Intenta con: San Blas, San Pedro, Magisterio, Santiago...</p>
           </div>
         )}
 
-        {/* Horarios encontrados */}
+        {/* Horarios */}
         {horarios && (
           <div>
-            <div className="flex items-center gap-2 mb-4">
+            <div className="mb-4">
               <span className="text-sm font-semibold text-gray-700">
-                Horarios para zona <span className="text-[#1a7a5e]">{zonaEncontrada}</span>
+                Horarios para <span className="text-[#1a7a5e]">{zonaEncontrada}</span>
               </span>
             </div>
-
             <div className="flex flex-col gap-3">
               {horarios.map((h, i) => (
                 <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-4 shadow-sm">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${turnoColor[h.turno]}`}>
-                    {turnoIcono[h.turno]}
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${turnoColor[h.turno] || 'bg-gray-100 text-gray-700'}`}>
+                    {turnoIcono[h.turno] || '🕐'}
                   </div>
                   <div className="flex-1">
                     <p className="font-semibold text-gray-800 text-sm">{h.turno}</p>
                     <p className="text-xs text-gray-500 mt-0.5">{h.dias}</p>
                   </div>
                   <div className="text-right">
-                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${turnoColor[h.turno]}`}>
-                      {h.hora}
+                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${turnoColor[h.turno] || 'bg-gray-100 text-gray-700'}`}>
+                      {formatHora(h.hora_inicio)} - {formatHora(h.hora_fin)}
                     </span>
                   </div>
                 </div>
               ))}
             </div>
-
             <p className="text-xs text-gray-400 text-center mt-4">
               🚛 Saca tu basura 15 minutos antes del horario indicado
             </p>
