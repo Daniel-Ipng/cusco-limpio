@@ -80,7 +80,7 @@ async function seed() {
       rol: 'conductor',
     },
     {
-      nombre: 'Carlos Mamani',
+      nombre: 'Carlos P',
       email: 'carlos@gmail.com',
       passwordHash: hashCiudadano,
       rol: 'ciudadano',

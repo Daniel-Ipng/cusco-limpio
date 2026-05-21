@@ -15,11 +15,7 @@ function App() {
       <Route path="/login" element={<Login />} />
 
       {/* Rutas del ciudadano */}
-      <Route path="/ciudadano" element={
-        <ProtectedRoute roles={['ciudadano']}>
-          <HomeCiudadano />
-        </ProtectedRoute>
-      }/>
+      <Route path="/ciudadano" element={<HomeCiudadano />} />
 
       {/* Rutas del admin — protegidas */}
       <Route path="/admin" element={

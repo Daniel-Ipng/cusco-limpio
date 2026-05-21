@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../lib/axios'
-import { useAuthStore } from '../store/authStore'
 
 interface Horario {
   id: string
@@ -14,20 +13,25 @@ interface Horario {
 const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
 export default function HomeCiudadano() {
-  const { usuario, logout } = useAuthStore()
   const navigate = useNavigate()
   const [horarios, setHorarios] = useState<Horario[]>([])
   const [horarioHoy, setHorarioHoy] = useState<Horario | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [zonas, setZonas] = useState<{ id: string; nombre: string }[]>([])
-  const [zonaSeleccionada, setZonaSeleccionada] = useState(usuario?.zona?.id ?? '')
+  const [zonaSeleccionada, setZonaSeleccionada] = useState('')
 
+  // Carga zonas públicas — no requiere login
   useEffect(() => {
     api.get('/zonas').then(res => setZonas(res.data))
   }, [])
 
+  // Carga horarios cuando el ciudadano selecciona una zona
   useEffect(() => {
-    if (!zonaSeleccionada) { setLoading(false); return }
+    if (!zonaSeleccionada) {
+      setHorarios([])
+      setHorarioHoy(null)
+      return
+    }
     setLoading(true)
     Promise.all([
       api.get(`/horarios?zonaId=${zonaSeleccionada}`),
@@ -37,11 +41,6 @@ export default function HomeCiudadano() {
       setHorarioHoy(hoy.data)
     }).finally(() => setLoading(false))
   }, [zonaSeleccionada])
-
-  function handleLogout() {
-    logout()
-    navigate('/login')
-  }
 
   const nombreZona = zonas.find(z => z.id === zonaSeleccionada)?.nombre ?? ''
 
@@ -59,15 +58,12 @@ export default function HomeCiudadano() {
             <p className="text-xs text-green-200">Sistema de recolección de residuos</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-green-100">Hola, {usuario?.nombre}</span>
-          <button
-            onClick={handleLogout}
-            className="text-xs text-green-200 hover:text-white transition-colors"
-          >
-            Cerrar sesión
-          </button>
-        </div>
+        <button
+          onClick={() => navigate('/')}
+          className="text-xs text-green-200 hover:text-white transition-colors"
+        >
+          ← Volver al inicio
+        </button>
       </div>
 
       <div className="max-w-lg mx-auto px-6 py-10">
@@ -106,41 +102,41 @@ export default function HomeCiudadano() {
         {/* Horario de hoy */}
         {!loading && zonaSeleccionada && (
           <div className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-sm font-semibold text-gray-700">
-                Hoy — {dias[new Date().getDay()]}
-              </span>
-            </div>
+            <span className="text-sm font-semibold text-gray-700">
+              Hoy — {dias[new Date().getDay()]}
+            </span>
 
-            {horarioHoy ? (
-              <div className="bg-[#1a7a5e] rounded-xl p-4 flex items-center gap-4 shadow-sm">
-                <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center text-2xl">
-                  🚛
+            <div className="mt-3">
+              {horarioHoy ? (
+                <div className="bg-[#1a7a5e] rounded-xl p-4 flex items-center gap-4 shadow-sm">
+                  <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center text-2xl">
+                    🚛
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-white text-sm">
+                      Recolección programada hoy
+                    </p>
+                    <p className="text-xs text-green-200 mt-0.5">
+                      Zona {nombreZona}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-sm font-bold text-white">
+                      {horarioHoy.horaInicio.slice(0, 5)}
+                    </span>
+                    <p className="text-xs text-green-200">
+                      hasta {horarioHoy.horaFin.slice(0, 5)}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="font-semibold text-white text-sm">
-                    Recolección programada hoy
-                  </p>
-                  <p className="text-xs text-green-200 mt-0.5">
-                    Zona {nombreZona}
+              ) : (
+                <div className="bg-gray-100 rounded-xl p-4 text-center">
+                  <p className="text-sm text-gray-500">
+                    No hay recolección programada para hoy en tu zona
                   </p>
                 </div>
-                <div className="text-right">
-                  <span className="text-sm font-bold text-white">
-                    {horarioHoy.horaInicio.slice(0, 5)}
-                  </span>
-                  <p className="text-xs text-green-200">
-                    hasta {horarioHoy.horaFin.slice(0, 5)}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="bg-gray-100 rounded-xl p-4 text-center">
-                <p className="text-sm text-gray-500">
-                  No hay recolección programada para hoy en tu zona
-                </p>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         )}
 

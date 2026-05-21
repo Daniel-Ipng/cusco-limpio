@@ -18,14 +18,14 @@ import { AsignacionesModule } from './asignaciones/asignaciones.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        host: config.get('DB_HOST'),
-        port: config.get<number>('DB_PORT'),
-        username: config.get('DB_USER'),
+        type: 'postgres',                     // le dice a TypeORM que use PostgreSQL
+        host: config.get('DB_HOST'),          // localhost
+        port: config.get<number>('DB_PORT'),  // 5432
+        username: config.get('DB_USER'),      // postgres
         password: config.get('DB_PASSWORD'),
-        database: config.get('DB_NAME'),
-        autoLoadEntities: true,
-        synchronize: true, // Solo en desarrollo
+        database: config.get('DB_NAME'),      // cusco_limpio
+        autoLoadEntities: true,               // carga las entidades automáticamente
+        synchronize: true,                    // crea/actualiza tablas al arrancar
       }),
     }),
 
