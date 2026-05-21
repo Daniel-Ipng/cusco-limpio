@@ -42,4 +42,10 @@ export class HorariosController {
   eliminar(@Param('id') id: string) {
     return this.horariosService.eliminar(id);
   }
+  @Get('todos')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  listarTodos() {
+    return this.horariosService.listarTodos();
+  }
 }

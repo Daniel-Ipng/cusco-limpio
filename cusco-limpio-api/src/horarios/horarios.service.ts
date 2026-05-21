@@ -53,4 +53,10 @@ export class HorariosService {
     if (!horario) throw new NotFoundException('Horario no encontrado');
     await this.horarioRepo.remove(horario);
   }
+  async listarTodos(): Promise<Horario[]> {
+    return this.horarioRepo.find({
+      relations: { zona: true },
+      order: { zona: { nombre: 'ASC' }, diaSemana: 'ASC' },
+    });
+  }
 }
