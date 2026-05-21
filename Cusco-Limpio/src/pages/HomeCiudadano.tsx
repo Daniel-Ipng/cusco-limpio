@@ -1,68 +1,72 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import api from '../lib/axios'
+import { useAuthStore } from '../store/authStore'
 
-const horariosPorZona: Record<string, { turno: string; hora: string; dias: string }[]> = {
-  'wanchaq': [
-    { turno: 'Mañana', hora: '06:00 - 08:00', dias: 'Lunes, Miércoles, Viernes' },
-    { turno: 'Tarde', hora: '14:00 - 16:00', dias: 'Martes, Jueves' },
-    { turno: 'Noche', hora: '20:00 - 22:00', dias: 'Sábado' },
-  ],
-  'santiago': [
-    { turno: 'Madrugada', hora: '04:00 - 06:00', dias: 'Lunes, Jueves' },
-    { turno: 'Mañana', hora: '07:00 - 09:00', dias: 'Martes, Viernes' },
-    { turno: 'Tarde', hora: '15:00 - 17:00', dias: 'Miércoles, Sábado' },
-  ],
-  'cusco': [
-    { turno: 'Mañana', hora: '06:00 - 08:00', dias: 'Lunes, Miércoles' },
-    { turno: 'Tarde', hora: '13:00 - 15:00', dias: 'Martes, Jueves' },
-    { turno: 'Noche', hora: '19:00 - 21:00', dias: 'Viernes, Sábado' },
-  ],
+interface Horario {
+  id: string
+  diaSemana: number
+  horaInicio: string
+  horaFin: string
+  zona: { id: string; nombre: string }
 }
 
-const turnoColor: Record<string, string> = {
-  'Madrugada': 'bg-purple-100 text-purple-700',
-  'Mañana': 'bg-yellow-100 text-yellow-700',
-  'Tarde': 'bg-orange-100 text-orange-700',
-  'Noche': 'bg-blue-100 text-blue-700',
-}
+const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
-const turnoIcono: Record<string, string> = {
-  'Madrugada': '🌙',
-  'Mañana': '🌅',
-  'Tarde': '☀️',
-  'Noche': '🌃',
-}
+export default function HomeCiudadano() {
+  const { usuario, logout } = useAuthStore()
+  const navigate = useNavigate()
+  const [horarios, setHorarios] = useState<Horario[]>([])
+  const [horarioHoy, setHorarioHoy] = useState<Horario | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [zonas, setZonas] = useState<{ id: string; nombre: string }[]>([])
+  const [zonaSeleccionada, setZonaSeleccionada] = useState(usuario?.zona?.id ?? '')
 
-function HomeCiudadano() {
-  const [direccion, setDireccion] = useState('')
-  const [horarios, setHorarios] = useState<{ turno: string; hora: string; dias: string }[] | null>(null)
-  const [zonaEncontrada, setZonaEncontrada] = useState('')
-  const [noEncontrado, setNoEncontrado] = useState(false)
+  useEffect(() => {
+    api.get('/zonas').then(res => setZonas(res.data))
+  }, [])
 
-  function buscarHorarios() {
-    const texto = direccion.toLowerCase()
-    const zona = Object.keys(horariosPorZona).find(z => texto.includes(z))
-    if (zona) {
-      setHorarios(horariosPorZona[zona])
-      setZonaEncontrada(zona.charAt(0).toUpperCase() + zona.slice(1))
-      setNoEncontrado(false)
-    } else {
-      setHorarios(null)
-      setNoEncontrado(true)
-      setZonaEncontrada('')
-    }
+  useEffect(() => {
+    if (!zonaSeleccionada) { setLoading(false); return }
+    setLoading(true)
+    Promise.all([
+      api.get(`/horarios?zonaId=${zonaSeleccionada}`),
+      api.get(`/horarios/hoy?zonaId=${zonaSeleccionada}`),
+    ]).then(([h, hoy]) => {
+      setHorarios(h.data)
+      setHorarioHoy(hoy.data)
+    }).finally(() => setLoading(false))
+  }, [zonaSeleccionada])
+
+  function handleLogout() {
+    logout()
+    navigate('/login')
   }
+
+  const nombreZona = zonas.find(z => z.id === zonaSeleccionada)?.nombre ?? ''
 
   return (
     <div className="min-h-screen bg-gray-50">
 
       {/* Header */}
-      <div className="bg-[#1a7a5e] px-6 py-4 flex items-center gap-3">
-        <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center text-lg">
-          ♻️
+      <div className="bg-[#1a7a5e] px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center text-lg">
+            ♻️
+          </div>
+          <div>
+            <p className="font-bold text-white">Cusco Limpio</p>
+            <p className="text-xs text-green-200">Sistema de recolección de residuos</p>
+          </div>
         </div>
-        <div>
-          <p className="font-bold text-white">Cusco Limpio</p>
-          <p className="text-xs text-green-200">Sistema de recolección de residuos</p>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-green-100">Hola, {usuario?.nombre}</span>
+          <button
+            onClick={handleLogout}
+            className="text-xs text-green-200 hover:text-white transition-colors"
+          >
+            Cerrar sesión
+          </button>
         </div>
       </div>
 
@@ -74,72 +78,113 @@ function HomeCiudadano() {
             ¿Cuándo recogen la basura en tu zona?
           </h1>
           <p className="text-sm text-gray-500">
-            Escribe tu dirección o zona para ver los horarios de recolección
+            Selecciona tu zona para ver los horarios de recolección
           </p>
         </div>
 
-        {/* Buscador */}
+        {/* Selector de zona */}
         <div className="bg-white border border-gray-200 rounded-xl p-4 mb-6 shadow-sm">
           <label className="text-xs font-medium text-gray-500 mb-2 block">
-            📍 Tu dirección o zona
+            📍 Tu zona de recolección
           </label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={direccion}
-              onChange={e => setDireccion(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && buscarHorarios()}
-              placeholder="Ej: Wanchaq, Santiago, Cusco centro..."
-              className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#1a7a5e]"
-            />
-            <button
-              onClick={buscarHorarios}
-              className="bg-[#1a7a5e] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#155f49] transition-colors"
-            >
-              Buscar
-            </button>
-          </div>
+          <select
+            value={zonaSeleccionada}
+            onChange={e => setZonaSeleccionada(e.target.value)}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#1a7a5e]"
+          >
+            <option value="">Selecciona tu zona...</option>
+            {zonas.map(z => (
+              <option key={z.id} value={z.id}>{z.nombre}</option>
+            ))}
+          </select>
         </div>
 
-        {/* Resultado no encontrado */}
-        {noEncontrado && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center mb-6">
-            <p className="text-sm text-red-600 font-medium">No encontramos horarios para esa dirección</p>
-            <p className="text-xs text-red-400 mt-1">Intenta con: Wanchaq, Santiago o Cusco</p>
-          </div>
+        {loading && (
+          <p className="text-center text-gray-400 text-sm">Cargando horarios...</p>
         )}
 
-        {/* Horarios encontrados */}
-        {horarios && (
-          <div>
-            <div className="flex items-center gap-2 mb-4">
+        {/* Horario de hoy */}
+        {!loading && zonaSeleccionada && (
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
               <span className="text-sm font-semibold text-gray-700">
-                Horarios para zona <span className="text-[#1a7a5e]">{zonaEncontrada}</span>
+                Hoy — {dias[new Date().getDay()]}
               </span>
             </div>
 
+            {horarioHoy ? (
+              <div className="bg-[#1a7a5e] rounded-xl p-4 flex items-center gap-4 shadow-sm">
+                <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center text-2xl">
+                  🚛
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-white text-sm">
+                    Recolección programada hoy
+                  </p>
+                  <p className="text-xs text-green-200 mt-0.5">
+                    Zona {nombreZona}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <span className="text-sm font-bold text-white">
+                    {horarioHoy.horaInicio.slice(0, 5)}
+                  </span>
+                  <p className="text-xs text-green-200">
+                    hasta {horarioHoy.horaFin.slice(0, 5)}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-gray-100 rounded-xl p-4 text-center">
+                <p className="text-sm text-gray-500">
+                  No hay recolección programada para hoy en tu zona
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Horario semanal */}
+        {!loading && horarios.length > 0 && (
+          <div>
+            <p className="text-sm font-semibold text-gray-700 mb-3">
+              Horario semanal — {nombreZona}
+            </p>
             <div className="flex flex-col gap-3">
-              {horarios.map((h, i) => (
-                <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-4 shadow-sm">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${turnoColor[h.turno]}`}>
-                    {turnoIcono[h.turno]}
+              {horarios.map((h) => (
+                <div
+                  key={h.id}
+                  className="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-4 shadow-sm"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center">
+                    <span className="text-xs font-bold text-green-700">
+                      {dias[h.diaSemana].slice(0, 3).toUpperCase()}
+                    </span>
                   </div>
                   <div className="flex-1">
-                    <p className="font-semibold text-gray-800 text-sm">{h.turno}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{h.dias}</p>
+                    <p className="font-semibold text-gray-800 text-sm">
+                      {dias[h.diaSemana]}
+                    </p>
                   </div>
                   <div className="text-right">
-                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${turnoColor[h.turno]}`}>
-                      {h.hora}
+                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-green-100 text-green-700">
+                      {h.horaInicio.slice(0, 5)} - {h.horaFin.slice(0, 5)}
                     </span>
                   </div>
                 </div>
               ))}
             </div>
-
             <p className="text-xs text-gray-400 text-center mt-4">
               🚛 Saca tu basura 15 minutos antes del horario indicado
             </p>
+          </div>
+        )}
+
+        {/* Sin zona seleccionada */}
+        {!loading && !zonaSeleccionada && (
+          <div className="text-center text-gray-400 mt-8">
+            <p className="text-4xl mb-3">🗺️</p>
+            <p className="text-sm">Selecciona tu zona para ver los horarios</p>
           </div>
         )}
 
@@ -147,5 +192,3 @@ function HomeCiudadano() {
     </div>
   )
 }
-
-export default HomeCiudadano
