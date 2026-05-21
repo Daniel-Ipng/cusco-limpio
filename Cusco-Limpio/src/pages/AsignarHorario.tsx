@@ -47,6 +47,63 @@ function formatHora(hora: string) {
   return hora.slice(0, 5)
 }
 
+function parseMinutos(hora: string) {
+  const [h, m] = hora.split(':')
+  return Number(h) * 60 + Number(m)
+}
+
+function normalizarDias(dias: string) {
+  const limpio = dias
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+
+  if (limpio.includes('todos')) {
+    return new Set(['lun', 'mar', 'mie', 'jue', 'vie', 'sab', 'dom'])
+  }
+
+  const tokens = limpio.match(/[a-z]+/g) || []
+  const mapa: Record<string, string> = {
+    lun: 'lun',
+    lunes: 'lun',
+    mar: 'mar',
+    martes: 'mar',
+    mie: 'mie',
+    miercoles: 'mie',
+    jue: 'jue',
+    jueves: 'jue',
+    vie: 'vie',
+    viernes: 'vie',
+    sab: 'sab',
+    sabado: 'sab',
+    dom: 'dom',
+    domingo: 'dom',
+  }
+
+  const resultado = new Set<string>()
+  tokens.forEach(token => {
+    const clave = mapa[token]
+    if (clave) {
+      resultado.add(clave)
+    }
+  })
+
+  return resultado
+}
+
+function diasSeCruzan(a: Set<string>, b: Set<string>) {
+  for (const dia of a) {
+    if (b.has(dia)) {
+      return true
+    }
+  }
+  return false
+}
+
+function horasSeCruzan(inicioA: number, finA: number, inicioB: number, finB: number) {
+  return inicioA < finB && inicioB < finA
+}
+
 function AsignarHorario() {
   const [tab, setTab] = useState<'crear' | 'ver'>('crear')
   const [zonas, setZonas] = useState<Zona[]>([])
@@ -60,6 +117,55 @@ function AsignarHorario() {
   const [programaciones, setProgramaciones] = useState<Programacion[]>([])
   const [vehiculos, setVehiculos] = useState<VehiculoStats[]>([])
   const [guardando, setGuardando] = useState(false)
+
+  const horarioSeleccionado = useMemo(() => {
+    if (!horarioId) {
+      return null
+    }
+    return horarios.find(horario => horario.id === horarioId) || null
+  }, [horarios, horarioId])
+
+  const estadoConductores = useMemo(() => {
+    const mapa = new Map<number, boolean>()
+
+    if (!horarioSeleccionado) {
+      conductores.forEach(conductor => {
+        mapa.set(conductor.id, conductor.disponible)
+      })
+      return mapa
+    }
+
+    const diasHorario = normalizarDias(horarioSeleccionado.dias)
+    const inicioHorario = parseMinutos(horarioSeleccionado.hora_inicio)
+    const finHorario = parseMinutos(horarioSeleccionado.hora_fin)
+
+    conductores.forEach(conductor => {
+      if (!conductor.disponible) {
+        mapa.set(conductor.id, false)
+        return
+      }
+
+      const ocupado = programaciones.some(programacion => {
+        if (!programacion.conductor || programacion.conductor !== conductor.nombre) {
+          return false
+        }
+
+        const diasProgramacion = normalizarDias(programacion.dias)
+        if (!diasSeCruzan(diasHorario, diasProgramacion)) {
+          return false
+        }
+
+        const inicioProgramacion = parseMinutos(programacion.hora_inicio)
+        const finProgramacion = parseMinutos(programacion.hora_fin)
+
+        return horasSeCruzan(inicioHorario, finHorario, inicioProgramacion, finProgramacion)
+      })
+
+      mapa.set(conductor.id, !ocupado)
+    })
+
+    return mapa
+  }, [conductores, programaciones, horarioSeleccionado])
 
   const resumen = useMemo(() => {
     const totalHorarios = programaciones.length
@@ -129,6 +235,17 @@ function AsignarHorario() {
     void cargarHorarios()
   }, [zonaId])
 
+  useEffect(() => {
+    if (!conductorId) {
+      return
+    }
+
+    const disponible = estadoConductores.get(conductorId)
+    if (disponible === false) {
+      setConductorId(null)
+    }
+  }, [estadoConductores, conductorId])
+
   async function refrescarProgramaciones() {
     try {
       const response = await fetch(`${API_BASE}/programaciones`)
@@ -158,6 +275,12 @@ function AsignarHorario() {
   async function handleAgregarTurno() {
     if (!zonaId || !horarioId || !conductorId) {
       window.alert('Completa zona, horario y conductor')
+      return
+    }
+
+    const disponible = estadoConductores.get(conductorId)
+    if (disponible === false) {
+      window.alert('Conductor no disponible para este horario')
       return
     }
 
@@ -312,12 +435,14 @@ function AsignarHorario() {
               <p className="font-semibold text-gray-700 text-sm">Conductor</p>
             </div>
             <div className="flex flex-col gap-2">
-              {conductores.map((c) => (
+              {conductores.map((c) => {
+                const disponible = estadoConductores.get(c.id) ?? c.disponible
+                return (
                 <div
                   key={c.id}
-                  onClick={() => c.disponible && setConductorId(c.id)}
+                  onClick={() => disponible && setConductorId(c.id)}
                   className={`flex items-center justify-between px-3 py-2 rounded-lg ${
-                    c.disponible ? 'hover:bg-gray-50 cursor-pointer' : 'opacity-60'
+                    disponible ? 'hover:bg-gray-50 cursor-pointer' : 'opacity-60'
                   } ${conductorId === c.id ? 'bg-green-50' : ''}`}
                 >
                   <div className="flex items-center gap-2">
@@ -326,11 +451,12 @@ function AsignarHorario() {
                     </div>
                     <span className="text-sm text-gray-700">{c.nombre}</span>
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${c.disponible ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                    {c.disponible ? 'Disponible' : 'No disponible'}
+                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${disponible ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                    {disponible ? 'Disponible' : 'No disponible'}
                   </span>
                 </div>
-              ))}
+                )
+              })}
             </div>
           </div>
 

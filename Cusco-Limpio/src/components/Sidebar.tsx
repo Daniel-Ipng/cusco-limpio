@@ -32,12 +32,14 @@ function Sidebar() {
           🚛 Asignar vehículo
         </NavLink>
 
+        {/* Operaciones */}
+        {/*
         <p className="text-xs text-gray-400 px-3 mb-1 mt-4">Operaciones</p>
         <NavLink to="/admin/zonas" className={({ isActive }) =>
           `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
             isActive ? 'bg-[#1a7a5e] text-white' : 'text-gray-600 hover:bg-gray-100'
           }`}>
-          📍 Asignar zona
+        📍 Asignar zona
         </NavLink>
         <NavLink to="/admin/rutas" className={({ isActive }) =>
           `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
@@ -59,6 +61,7 @@ function Sidebar() {
           }`}>
           📊 Reportes
         </NavLink>
+        */}
 
       </nav>
     </aside>

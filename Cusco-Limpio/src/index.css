@@ -1,1 +1,117 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
+
+.zone-page {
+	--zone-accent: #1a7a5e;
+	--zone-accent-soft: #dff3ea;
+	--zone-ink: #1b2a24;
+	--zone-muted: #6b7a74;
+	--zone-border: rgba(26, 122, 94, 0.18);
+	--zone-card: rgba(255, 255, 255, 0.92);
+	--zone-shadow: 0 18px 45px rgba(15, 34, 27, 0.08);
+	font-family: "Space Grotesk", sans-serif;
+	background:
+		radial-gradient(1200px 500px at 8% -10%, #dff3ea 0%, transparent 60%),
+		radial-gradient(900px 400px at 100% 0%, #eef6f2 0%, transparent 55%),
+		#f7faf8;
+	color: var(--zone-ink);
+}
+
+.zone-title {
+	font-family: "Fraunces", serif;
+}
+
+.zone-muted {
+	color: var(--zone-muted);
+}
+
+.zone-input {
+	background: rgba(255, 255, 255, 0.9);
+	border: 1px solid var(--zone-border);
+	box-shadow: 0 10px 24px rgba(15, 34, 27, 0.08);
+}
+
+.zone-icon-btn {
+	width: 40px;
+	height: 40px;
+	border-radius: 12px;
+	border: 1px solid var(--zone-border);
+	background: rgba(255, 255, 255, 0.9);
+	box-shadow: 0 10px 24px rgba(15, 34, 27, 0.08);
+}
+
+.zone-stat {
+	background: var(--zone-card);
+	border: 1px solid var(--zone-border);
+	box-shadow: var(--zone-shadow);
+}
+
+.zone-card {
+	background: var(--zone-card);
+	border: 1px solid var(--zone-border);
+	box-shadow: var(--zone-shadow);
+}
+
+.zone-dot {
+	width: 10px;
+	height: 10px;
+	border-radius: 999px;
+	background: var(--zone-accent);
+}
+
+.zone-pill {
+	background: var(--zone-accent-soft);
+	color: var(--zone-accent);
+	font-size: 0.7rem;
+	padding: 0.2rem 0.6rem;
+	border-radius: 999px;
+}
+
+.zone-chip {
+	border: 1px solid var(--zone-border);
+	padding: 0.25rem 0.7rem;
+	border-radius: 999px;
+	font-size: 0.75rem;
+	color: var(--zone-ink);
+	background: rgba(255, 255, 255, 0.7);
+	transition: all 160ms ease;
+}
+
+.zone-chip:hover {
+	border-color: var(--zone-accent);
+	color: var(--zone-accent);
+}
+
+.zone-chip-active {
+	background: var(--zone-accent);
+	color: white;
+	border-color: var(--zone-accent);
+}
+
+.zone-mini-card {
+	border: 1px solid var(--zone-border);
+	border-radius: 14px;
+	padding: 0.8rem 0.9rem;
+	background: rgba(255, 255, 255, 0.85);
+}
+
+.zone-route {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 0.8rem 0.9rem;
+	border-radius: 14px;
+	border: 1px solid var(--zone-border);
+	background: rgba(255, 255, 255, 0.88);
+}
+
+.zone-action {
+	border-radius: 12px;
+	padding: 0.5rem 1rem;
+	font-size: 0.85rem;
+	background: rgba(255, 255, 255, 0.85);
+	border: 1px dashed var(--zone-border);
+	color: var(--zone-muted);
+	cursor: not-allowed;
+}
