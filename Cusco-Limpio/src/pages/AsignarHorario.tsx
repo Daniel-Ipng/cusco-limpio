@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import api from '../lib/axios'
 
 interface Zona { id: string; nombre: string }
-interface Conductor { id: string; nombre: string; email: string }
+interface Conductor { id: string; nombre: string }
 interface Vehiculo { id: string; placa: string; tipo: string }
 interface Horario { id: string; diaSemana: number; horaInicio: string; horaFin: string; zona: Zona }
 
@@ -18,13 +18,10 @@ export default function AsignarHorario() {
   const [guardando, setGuardando] = useState(false)
   const [mensaje, setMensaje] = useState('')
 
-  // Formulario crear horario
   const [zonaId, setZonaId] = useState('')
   const [diaSemana, setDiaSemana] = useState('')
   const [horaInicio, setHoraInicio] = useState('')
   const [horaFin, setHoraFin] = useState('')
-
-  // Formulario crear asignación
   const [asigZonaId, setAsigZonaId] = useState('')
   const [asigVehiculoId, setAsigVehiculoId] = useState('')
   const [asigConductorId, setAsigConductorId] = useState('')
@@ -59,7 +56,6 @@ export default function AsignarHorario() {
       })
       setMensaje('✅ Horario creado correctamente')
       setZonaId(''); setDiaSemana(''); setHoraInicio(''); setHoraFin('')
-      // Recargar horarios
       const res = await api.get('/horarios/todos')
       setHorarios(res.data)
     } catch {
@@ -107,25 +103,31 @@ export default function AsignarHorario() {
           <h1 className="text-2xl font-bold text-gray-800">Asignar Horario</h1>
           <p className="text-sm text-gray-500">Recursos › Programación semanal</p>
         </div>
+        <button
+          onClick={() => { setTab('crear'); setMensaje('') }}
+          className="flex items-center gap-2 bg-[#1a7a5e] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#155f49] transition-colors"
+        >
+          + Agregar turno
+        </button>
       </div>
 
       {/* Stats reales */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        <div className="bg-white border border-gray-200 rounded-xl p-4">
-          <p className="text-sm text-gray-500 mb-1">Total horarios</p>
-          <p className="text-3xl font-bold text-gray-800">{horarios.length}</p>
-          <p className="text-xs text-gray-400 mt-1">Horarios registrados</p>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-xl p-4">
-          <p className="text-sm text-gray-500 mb-1">Conductores activos</p>
-          <p className="text-3xl font-bold text-gray-800">{conductores.length}</p>
-          <p className="text-xs text-gray-400 mt-1">Disponibles para asignar</p>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-xl p-4">
-          <p className="text-sm text-gray-500 mb-1">Vehículos disponibles</p>
-          <p className="text-3xl font-bold text-gray-800">{vehiculos.length}</p>
-          <p className="text-xs text-gray-400 mt-1">Listos para operar</p>
-        </div>
+      <div className="grid grid-cols-4 gap-4 mb-8">
+        {[
+          { icon: '📅', valor: horarios.length, label: 'Total horarios', sub: 'Horarios registrados' },
+          { icon: '👤', valor: conductores.length, label: 'Conductores activos', sub: 'Disponibles para asignar' },
+          { icon: '🚛', valor: vehiculos.length, label: 'Vehículos disponibles', sub: 'Listos para operar' },
+          { icon: '📍', valor: zonas.length, label: 'Zonas activas', sub: 'En el distrito de Cusco' },
+        ].map((stat, i) => (
+          <div key={i} className="bg-white border border-gray-200 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-gray-500">{stat.label}</p>
+              <span className="text-xl">{stat.icon}</span>
+            </div>
+            <p className="text-3xl font-bold text-gray-800">{stat.valor}</p>
+            <p className="text-xs text-gray-400 mt-1">{stat.sub}</p>
+          </div>
+        ))}
       </div>
 
       {/* Tabs */}
@@ -148,7 +150,7 @@ export default function AsignarHorario() {
         </button>
       </div>
 
-      {/* Mensaje de feedback */}
+      {/* Mensaje */}
       {mensaje && (
         <p className={`mb-4 text-sm px-4 py-2 rounded-lg w-fit ${
           mensaje.includes('✅') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'
@@ -157,20 +159,21 @@ export default function AsignarHorario() {
         </p>
       )}
 
-      {/* Tab: Crear Horario */}
+      {/* Tab Crear */}
       {tab === 'crear' && (
         <div className="grid grid-cols-2 gap-6">
 
           {/* Crear horario semanal */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col gap-4">
-            <h2 className="font-semibold text-gray-700">Nuevo horario semanal</h2>
-
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Zona</label>
+          <div className="flex flex-col gap-4">
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <span>📅</span>
+                <p className="font-semibold text-gray-700 text-sm">Zona de recolección</p>
+              </div>
               <select
                 value={zonaId}
                 onChange={e => setZonaId(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-500 bg-white"
               >
                 <option value="">Seleccionar zona...</option>
                 {zonas.map(z => (
@@ -179,38 +182,40 @@ export default function AsignarHorario() {
               </select>
             </div>
 
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Día de la semana</label>
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <span>🕐</span>
+                <p className="font-semibold text-gray-700 text-sm">Día y horario</p>
+              </div>
               <select
                 value={diaSemana}
                 onChange={e => setDiaSemana(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-3"
               >
                 <option value="">Seleccionar día...</option>
                 {dias.map((d, i) => (
                   <option key={i} value={i}>{d}</option>
                 ))}
               </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">Hora inicio</label>
-                <input
-                  type="time"
-                  value={horaInicio}
-                  onChange={e => setHoraInicio(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">Hora fin</label>
-                <input
-                  type="time"
-                  value={horaFin}
-                  onChange={e => setHoraFin(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Hora inicio</label>
+                  <input
+                    type="time"
+                    value={horaInicio}
+                    onChange={e => setHoraInicio(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Hora fin</label>
+                  <input
+                    type="time"
+                    value={horaFin}
+                    onChange={e => setHoraFin(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                  />
+                </div>
               </div>
             </div>
 
@@ -224,53 +229,63 @@ export default function AsignarHorario() {
           </div>
 
           {/* Crear asignación diaria */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col gap-4">
-            <h2 className="font-semibold text-gray-700">Nueva asignación diaria</h2>
+          <div className="flex flex-col gap-4">
 
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Zona</label>
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <span>👤</span>
+                <p className="font-semibold text-gray-700 text-sm">Conductor</p>
+              </div>
+              <div className="flex flex-col gap-2">
+                {conductores.map((c) => (
+                  <div
+                    key={c.id}
+                    onClick={() => setAsigConductorId(c.id)}
+                    className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                      asigConductorId === c.id
+                        ? 'bg-green-50 border border-[#1a7a5e]'
+                        : 'hover:bg-gray-50 border border-transparent'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium text-gray-600">
+                        {c.nombre.split(' ').map((n: string) => n[0]).join('')}
+                      </div>
+                      <span className="text-sm text-gray-700">{c.nombre}</span>
+                    </div>
+                    <span className="text-xs px-2 py-1 rounded-full font-medium bg-green-100 text-green-700">
+                      Disponible
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <span>🚛</span>
+                <p className="font-semibold text-gray-700 text-sm">Vehículo y zona</p>
+              </div>
               <select
                 value={asigZonaId}
                 onChange={e => setAsigZonaId(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-3"
               >
                 <option value="">Seleccionar zona...</option>
                 {zonas.map(z => (
                   <option key={z.id} value={z.id}>{z.nombre}</option>
                 ))}
               </select>
-            </div>
-
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Vehículo</label>
               <select
                 value={asigVehiculoId}
                 onChange={e => setAsigVehiculoId(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-3"
               >
                 <option value="">Seleccionar vehículo...</option>
                 {vehiculos.map(v => (
                   <option key={v.id} value={v.id}>{v.placa} — {v.tipo}</option>
                 ))}
               </select>
-            </div>
-
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Conductor</label>
-              <select
-                value={asigConductorId}
-                onChange={e => setAsigConductorId(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-              >
-                <option value="">Seleccionar conductor...</option>
-                {conductores.map(c => (
-                  <option key={c.id} value={c.id}>{c.nombre}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Fecha</label>
               <input
                 type="date"
                 value={asigFecha}
@@ -291,7 +306,7 @@ export default function AsignarHorario() {
         </div>
       )}
 
-      {/* Tab: Ver Horarios */}
+      {/* Tab Ver Horarios */}
       {tab === 'ver' && (
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
           <table className="w-full text-sm">
