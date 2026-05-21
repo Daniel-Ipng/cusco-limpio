@@ -25,7 +25,7 @@ import { AsignacionesModule } from './asignaciones/asignaciones.module';
         password: config.get('DB_PASSWORD'),
         database: config.get('DB_NAME'),      // cusco_limpio
         autoLoadEntities: true,               // carga las entidades automáticamente
-        synchronize: true,                    // crea/actualiza tablas al arrancar
+        synchronize: process.env.NODE_ENV !== 'production',                    // crea/actualiza tablas al arrancar
       }),
     }),
 

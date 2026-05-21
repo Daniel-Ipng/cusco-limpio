@@ -14,9 +14,13 @@ async function bootstrap() {
 
   // CORS para que el frontend pueda conectarse
   app.enableCors({
-    origin: 'http://localhost:5173',
+    origin: [
+      'http://localhost:5173',
+      /\.vercel\.app$/,        // permite cualquier subdominio de Vercel
+      /\.railway\.app$/,       // permite cualquier subdominio de Railway
+    ],
     credentials: true,
-  });
+  })
 
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
