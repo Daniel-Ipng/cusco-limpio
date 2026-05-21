@@ -16,8 +16,8 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'http://localhost:5173',
-      /\.vercel\.app$/,        // permite cualquier subdominio de Vercel
-      /\.railway\.app$/,       // permite cualquier subdominio de Railway
+      /\.vercel\.app$/,
+      /\.railway\.app$/,
     ],
     credentials: true,
   })
